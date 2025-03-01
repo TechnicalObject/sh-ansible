@@ -1,0 +1,40 @@
+# ansible-playbook -i inventory.ini install_docker.yml
+---
+- name: Install Docker on CentOS using Ansible
+  hosts: oci  # Replace with your target host or group
+  become: yes  # Run as sudo
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.12
+
+  tasks:
+    - name: Install required packages
+      yum:
+        name:
+          - dnf-utils
+          - zip
+          - unzip
+        state: present
+
+    - name: Add Docker repository
+      command: dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+      args:
+        creates: /etc/yum.repos.d/docker-ce.repo
+
+    - name: Remove runc if installed
+      dnf:
+        name: runc
+        state: absent
+
+    - name: Install Docker CE
+      dnf:
+        name: docker-ce
+        state: present
+        enablerepo: docker-ce-stable
+        disable_excludes: all
+        allow_downgrade: true
+
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started

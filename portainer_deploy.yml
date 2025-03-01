@@ -1,0 +1,74 @@
+# ansible-playbook -i inventory.ini portainer_deploy.yml
+---
+- name: Deploy Portainer with Traefik using Docker Compose
+  hosts: oci
+  become: true
+  tasks:
+
+    - name: Ensure required packages are installed
+      package:
+        name:
+          - docker-ce
+          - python3-pip
+        state: present
+
+    - name: Install required Python packages for Docker
+      pip:
+        name:
+          - docker
+          - requests
+          - packaging
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create a Docker network scoobydoo
+      community.docker.docker_network:
+        name: scoobydoo
+        driver: bridge
+        state: present
+
+    - name: Create project directory for Portainer
+      file:
+        path: /data/docker/portainer
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Copy Docker Compose file
+      copy:
+        dest: /data/docker/portainer/docker-compose.yml
+        content: |
+          name: portainer
+          services:
+            portainer:
+              image: portainer/portainer-ee:latest
+              container_name: portainer
+              restart: always
+              networks:
+                - scoobydoo
+              ports:
+                - "9443:9443"
+              volumes:
+                - "/var/run/docker.sock:/var/run/docker.sock"
+                - "/data/docker/portainer:/data"
+              labels:
+                - "traefik.enable=true"
+                - "traefik.http.routers.portainer-rtr.entrypoints=websecure"
+                - "traefik.http.services.portainer-rtr.loadbalancer.server.port=9000"
+                - "traefik.http.routers.portainer-rtr.tls.certresolver=letsencrypt"
+
+          networks:
+            scoobydoo:
+              external: true
+              name: scoobydoo
+
+    - name: Start Portainer using Docker Compose
+      command: docker compose up -d
+      args:
+        chdir: /data/docker/portainer

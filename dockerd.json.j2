@@ -1,0 +1,15 @@
+{
+    "data-root": "/var/packages/ContainerManager/var/docker",
+    "hosts": [
+        "tcp://{{ ansible_host }}:2375",
+        "tcp://{{ tailscale_ip }}:2375",
+        "unix:///var/run/docker.sock"
+    ],
+    "log-driver": "loki",
+    "log-opts": {
+        "loki-batch-size": "400",
+        "loki-url": "{{ loki_url }}"
+    },
+    "registry-mirrors": [],
+    "storage-driver": "btrfs"
+}
