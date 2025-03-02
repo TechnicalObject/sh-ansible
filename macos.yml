@@ -1,0 +1,50 @@
+# xcode-select --install 
+# /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# brew install ansible
+# ansible-playbook -i inventory.ini macos.yml
+---
+- name: Install Homebrew packages on macOS
+  hosts: localhost
+  connection: local
+  become: false
+
+  tasks:
+    - name: Ensure Homebrew is installed
+      stat:
+        path: /opt/homebrew/bin/brew
+      register: brew_check
+
+    - name: Fail if Homebrew is not installed
+      fail:
+        msg: "Homebrew is not installed. Run the Homebrew installation playbook first."
+      when: not brew_check.stat.exists
+
+    - name: Install Homebrew packages
+      homebrew:
+        name:
+          - nvm
+          - bitwarden-cli
+          - ykman
+          - pyenv
+          - gnupg
+          - pipx
+          - docker
+        state: present
+
+    - name: Install Homebrew Cask applications
+      homebrew_cask:
+        name:
+          - google-chrome
+          - visual-studio-code
+          - brave-browser
+          - firefox
+          - slack
+          - maccy
+          - linearmouse
+          - lunar
+          - google-cloud-sdk
+          - termius
+          - affinity-designer
+          - affinity-photo
+          - affinity-publisher
+        state: present
