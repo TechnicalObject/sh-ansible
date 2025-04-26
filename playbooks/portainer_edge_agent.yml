@@ -1,0 +1,125 @@
+# ansible-playbook -i inventory.ini playbooks/portainer_edge_agent.yml --vault-password-file .vault_pass  --ask-become-pass
+---
+- name: Deploy Portainer Agent
+  hosts: portainer_agent
+  become: yes
+  vars_files:
+  - ../secrets/secrets.yml
+  vars:
+    docker_path: "{{ volume_path | default('') }}/docker"
+  tasks:
+    - name: Set volume path
+      set_fact:
+        docker_volumes: "/var/lib/docker/volumes"
+
+    - name: Set variable to another value
+      set_fact:
+        docker_volumes: "{{ volume_path }}/@docker/volumes"
+      when: "'Synology' in ansible_system_vendor"
+
+    # - name: Install Docker (if not already installed)
+    #   package:
+    #     name: docker
+    #     state: present
+    #   when: ansible_os_family == "Debian" or ansible_os_family == "RedHat"
+
+    - name: Ensure Docker is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+      when: "'Synology' not in ansible_system_vendor"
+
+    - name: \[Synology\] Ensure Docker is running
+      service:
+        name: pkg-ContainerManager-dockerd
+        state: started
+        enabled: yes
+      when: "'Synology' in ansible_system_vendor"
+
+    - name: \[Synology\] Backup the original dockerd.json file
+      ansible.builtin.copy:
+        src: /var/packages/ContainerManager/etc/dockerd.json
+        dest: /var/packages/ContainerManager/etc/dockerd.json.bak
+        remote_src: true
+        mode: '0600'
+      when: "'Synology' in ansible_system_vendor"
+
+    - name: \[Synology\] Ensure dockerd.json contains required configuration
+      ansible.builtin.template:
+        src: ../templates/dockerd.json.j2
+        dest: /var/packages/ContainerManager/etc/dockerd.json
+        owner: root
+        group: root
+        mode: '0600'
+      notify:
+        - Restart Docker Daemon
+        - Restart Docker Daemon (restart)
+      when: "'Synology' in ansible_system_vendor"
+
+    - name: Ensure env directory exists
+      ansible.builtin.file:
+        path: "{{ docker_path }}/env"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure cloudflared.env exists
+      ansible.builtin.template:
+        src: ../templates/cloudflared.env.j2
+        dest: "{{ docker_path }}/env/cloudflared.env"
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Ensure diun.env exists
+      ansible.builtin.template:
+        src: ../templates/diun.env.j2
+        dest: "{{ docker_path }}/env/diun.env"
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Ensure traefik.env exists
+      ansible.builtin.template:
+        src: ../templates/traefik.env.j2
+        dest: "{{ docker_path }}/env/traefik.env"
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Ensure directory exists
+      ansible.builtin.file:
+        path: "{{ docker_path }}/portainer_edge_agent"
+        state: directory
+        mode: '0755'
+
+    - name: Deploy Portainer Agent container
+      community.docker.docker_container:
+        name: portainer_edge_agent
+        image: portainer/agent:latest
+        state: started
+        env:
+          EDGE: "1"
+          EDGE_ID: "{{ edge_id }}"
+          EDGE_KEY: "{{ edge_key }}"
+          EDGE_INSECURE_POLL: "1"
+          DOCKER_DIR: "{{ docker_path }}"
+          MY_DOMAIN: "{{ env_domain }}"
+        restart_policy: always
+        published_ports:
+          - "9001:9001"
+        volumes:
+          - "/var/run/docker.sock:/var/run/docker.sock"
+          - "{{ docker_volumes }}:/var/lib/docker/volumes"
+          - "{{ docker_path }}/portainer_edge_agent:/data"
+          - "/:/host"
+          - "{{ docker_path }}/env:/env"
+
+
+  handlers:
+    - name: Restart Docker Daemon
+      ansible.builtin.command:
+        cmd: systemctl daemon-reload
+    - name: Restart Docker Daemon (restart)
+      ansible.builtin.command:
+        cmd: systemctl restart pkg-ContainerManager-dockerd

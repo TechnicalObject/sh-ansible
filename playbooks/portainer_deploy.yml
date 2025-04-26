@@ -1,4 +1,4 @@
-# ansible-playbook -i inventory.ini portainer_deploy.yml
+# ansible-playbook -i inventory.ini playbooks/portainer_deploy.yml
 ---
 - name: Deploy Portainer with Traefik using Docker Compose
   hosts: oci
@@ -12,13 +12,13 @@
           - python3-pip
         state: present
 
-    - name: Install required Python packages for Docker
-      pip:
-        name:
-          - docker
-          - requests
-          - packaging
-        state: present
+    # - name: Install required Python packages for Docker
+    #   pip:
+    #     name:
+    #       - docker
+    #       - requests
+    #       - packaging
+    #     state: present
 
     - name: Start Docker service
       service:
@@ -26,11 +26,11 @@
         state: started
         enabled: yes
 
-    - name: Create a Docker network scoobydoo
-      community.docker.docker_network:
-        name: scoobydoo
-        driver: bridge
-        state: present
+    # - name: Create a Docker network scoobydoo
+    #   community.docker.docker_network:
+    #     name: scoobydoo
+    #     driver: bridge
+    #     state: present
 
     - name: Create project directory for Portainer
       file:
@@ -50,10 +50,13 @@
               image: portainer/portainer-ee:latest
               container_name: portainer
               restart: always
+              environment:
+                - TEST="BEST"
               networks:
                 - scoobydoo
               ports:
                 - "9443:9443"
+                - "8000:8000"
               volumes:
                 - "/var/run/docker.sock:/var/run/docker.sock"
                 - "/data/docker/portainer:/data"

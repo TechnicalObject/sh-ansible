@@ -29,6 +29,7 @@
           - gnupg
           - pipx
           - docker
+          - android-platform-tools
         state: present
 
     - name: Install Homebrew Cask applications
@@ -47,4 +48,5 @@
           - affinity-designer
           - affinity-photo
           - affinity-publisher
+          - balenaetcher
         state: present
