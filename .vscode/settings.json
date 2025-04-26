@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "*.yaml": "home-assistant"
-    }
+    },
+    "ansible.python.interpreterPath": "/Users/lubos/.pyenv/versions/3.13.1/bin/python"
 }
