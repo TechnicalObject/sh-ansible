@@ -49,4 +49,5 @@
           - affinity-photo
           - affinity-publisher
           - balenaetcher
+          - cyberduck
         state: present
