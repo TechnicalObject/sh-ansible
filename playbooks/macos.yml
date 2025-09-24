@@ -50,4 +50,5 @@
           - affinity-publisher
           - balenaetcher
           - cyberduck
+          - blackhole-2ch
         state: present
