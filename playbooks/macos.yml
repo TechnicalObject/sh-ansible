@@ -30,6 +30,7 @@
           - pipx
           - docker
           - android-platform-tools
+          - yt-dlp
         state: present
 
     - name: Install Homebrew Cask applications
