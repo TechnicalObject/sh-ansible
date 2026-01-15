@@ -31,6 +31,7 @@
           - docker
           - android-platform-tools
           - yt-dlp
+          - imagemagick # for converting svg to ico
         state: present
 
     - name: Install Homebrew Cask applications
